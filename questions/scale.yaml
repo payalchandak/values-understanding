@@ -1,0 +1,11 @@
+options:
+  - id: strongly_disagree
+    label: Strongly disagree
+  - id: disagree
+    label: Disagree
+  - id: neither
+    label: Neither agree nor disagree
+  - id: agree
+    label: Agree
+  - id: strongly_agree
+    label: Strongly agree

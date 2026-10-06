@@ -1,0 +1,31 @@
+[project]
+name = "values-understanding"
+version = "0.1.0"
+description = "Ask structured survey questions under values-harness conditions"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "instructor",
+    "litellm",
+    "pydantic>=2.0,<3",
+    "python-dotenv>=1.0,<2",
+    "pyyaml>=6.0,<7",
+    "values-harness",
+    "values-schemas",
+]
+
+[project.scripts]
+values-understanding = "values_understanding.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["values_understanding"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"questions" = "values_understanding/question_data"
+
+[tool.uv.sources]
+values-harness = { git = "ssh://git@github.com/payalchandak/values-harness.git" }
+values-schemas = { git = "ssh://git@github.com/payalchandak/values-schemas.git" }
