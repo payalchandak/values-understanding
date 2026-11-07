@@ -15,7 +15,12 @@ from values_understanding.questions import (
     load_questions,
     render_user_prompt,
 )
-from values_understanding.run import Task, default_output_dir, run_tasks
+from values_understanding.run import (
+    Task,
+    default_output_dir,
+    run_tasks,
+    summarize_results,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -54,6 +59,18 @@ def main(argv: list[str] | None = None) -> int:
         default="high",
         help="Provider reasoning effort; pass an empty string to omit it.",
     )
+    parser.add_argument(
+        "--trials",
+        type=int,
+        default=10,
+        help="Independent responses per question/condition/model. Default: 10.",
+    )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=250,
+        help="Maximum concurrent model calls. Default: 250.",
+    )
     parser.add_argument("--output-dir", default=None)
     parser.add_argument(
         "--dry-run",
@@ -65,7 +82,16 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Replace already-complete results.",
     )
+    parser.add_argument(
+        "--summarize",
+        action="store_true",
+        help="Print mean scores from existing results without calling a model.",
+    )
     args = parser.parse_args(argv)
+    if args.trials < 1:
+        parser.error("--trials must be at least 1")
+    if args.threads < 1:
+        parser.error("--threads must be at least 1")
 
     if args.list_questions:
         for question in load_questions():
@@ -74,6 +100,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.list_conditions:
         for condition in list_conditions():
             print(condition)
+        return 0
+    if args.summarize:
+        summaries = summarize_results(
+            args.output_dir or default_output_dir(),
+            model_ids=args.model,
+        )
+        if not summaries:
+            print("No completed results found.", file=sys.stderr)
+            return 1
+        for summary in summaries:
+            print(
+                f"{summary.model_id} / {summary.condition}: "
+                f"mean={summary.mean_score:.2f} (n={summary.n})"
+            )
         return 0
 
     questions = _select_questions(args.question)
@@ -95,12 +135,19 @@ def main(argv: list[str] | None = None) -> int:
             reasoning_effort=args.reasoning_effort or None,
         )
         tasks = [
-            Task(question, condition, model_id)
+            Task(question, condition, model_id, trial)
             for question in questions
             for condition in conditions
+            for trial in range(1, args.trials + 1)
         ]
         try:
-            run_tasks(tasks, client, output_dir, force=args.force)
+            run_tasks(
+                tasks,
+                client,
+                output_dir,
+                force=args.force,
+                threads=args.threads,
+            )
         except RuntimeError as exc:
             print(exc, file=sys.stderr)
             failures += 1

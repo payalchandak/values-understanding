@@ -16,6 +16,10 @@ Every question uses this scale:
 4. Agree
 5. Strongly agree
 
+Answers are scored from −2 to 2:
+`Strongly disagree = -2`, `Disagree = -1`, `Neither = 0`, `Agree = 1`,
+and `Strongly agree = 2`.
+
 ## Setup
 
 ```bash
@@ -39,11 +43,14 @@ uv run python -m values_understanding --dry-run
 ```
 
 By default, a run uses `control` and every available
-`autonomy_primacy/v*` condition:
+`autonomy_primacy/v*` condition, requests 10 independent responses per
+question/condition/model, and runs up to 250 calls concurrently:
 
 ```bash
 uv run python -m values_understanding --model openai/gpt-5.5
 ```
+
+Override the sampling or concurrency with `--trials` and `--threads`.
 
 Choose conditions explicitly, repeat models, or sweep the whole harness:
 
@@ -62,17 +69,27 @@ Useful inspection commands:
 ```bash
 uv run python -m values_understanding --list-questions
 uv run python -m values_understanding --list-conditions
+uv run python -m values_understanding --summarize
+```
+
+Score saved results without making model calls:
+
+```bash
+uv run python scripts/score_results.py
+uv run python scripts/score_results.py --model google/gemini-3.1-pro-preview
+uv run python scripts/score_results.py --json
 ```
 
 Results are stored at:
 
 ```text
-results/<question>/<condition>/<provider>__<model>.json
+results/<question>/<condition>/<provider>__<model>[__trial_NN].json
 ```
 
 Each result includes the exact rendered system prompt, user prompt, selected
-option and full provider response. Complete results are skipped on rerun; pass
-`--force` to replace them.
+option, numeric score, and full provider response. Complete results are skipped
+on rerun; pass `--force` to replace them. Summary calculations also support
+older result files without a stored score by deriving it from `choice_id`.
 
 ## Add a question
 

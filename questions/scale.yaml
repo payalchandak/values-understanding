@@ -1,11 +1,16 @@
 options:
   - id: strongly_disagree
     label: Strongly disagree
+    score: -2
   - id: disagree
     label: Disagree
+    score: -1
   - id: neither
     label: Neither agree nor disagree
+    score: 0
   - id: agree
     label: Agree
+    score: 1
   - id: strongly_agree
     label: Strongly agree
+    score: 2

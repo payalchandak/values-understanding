@@ -13,12 +13,14 @@ from pydantic import BaseModel, Field
 
 _ID_RE = re.compile(r"^[a-z0-9_]+$")
 _OPTION_COUNT = 5
+_EXPECTED_SCORES = set(range(-2, 3))
 
 
 @dataclass(frozen=True)
 class Option:
     id: str
     label: str
+    score: int
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,12 @@ class Question:
         for option in self.options:
             if option.label == label:
                 return option.id
+        raise KeyError(label)
+
+    def option_score(self, label: str) -> int:
+        for option in self.options:
+            if option.label == label:
+                return option.score
         raise KeyError(label)
 
 
@@ -100,6 +108,8 @@ def _load_scale(path: Path) -> tuple[Option, ...]:
         raise ValueError(f"{path} has duplicate option ids")
     if len({option.label for option in options}) != len(options):
         raise ValueError(f"{path} has duplicate option labels")
+    if {option.score for option in options} != _EXPECTED_SCORES:
+        raise ValueError(f"{path} scores must be exactly -2, -1, 0, 1, and 2")
     return options
 
 
@@ -123,11 +133,14 @@ def _parse_option(item: object, path: Path) -> Option:
         raise ValueError(f"{path} option must be a mapping, got {item!r}")
     option_id = item.get("id")
     label = item.get("label")
+    score = item.get("score")
     if not isinstance(option_id, str) or not _ID_RE.fullmatch(option_id):
         raise ValueError(f"{path} has an invalid option id: {option_id!r}")
     if not isinstance(label, str) or not label.strip():
         raise ValueError(f"{path} option {option_id!r} is missing a label")
-    return Option(option_id, label.strip())
+    if not isinstance(score, int) or isinstance(score, bool):
+        raise ValueError(f"{path} option {option_id!r} has an invalid score")
+    return Option(option_id, label.strip(), score)
 
 
 def _read_yaml(path: Path) -> dict:
